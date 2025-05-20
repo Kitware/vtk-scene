@@ -1,0 +1,113 @@
+[project]
+name = "vtk-scene"
+version = "0.0.1"
+authors = [
+  { name = "Sebastien Jourdain", email = "sebastien.jourdain@kitware.com" },
+  { name = "Berk Geveci", email = "berk.geveci@kitware.com" },
+]
+description = "VTK add-on to ease 3D scene creation"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "vtk>=9.4.2",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest >=6",
+  "pytest-cov >=3",
+  "nox",
+]
+dev = [
+  "pytest >=6",
+  "pytest-cov >=3",
+  "pre-commit",
+  "ruff",
+  "nox",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = [
+  "/src/vtk_scene/**/*.py",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vtk_scene"]
+
+[tool.uv]
+dev-dependencies = [
+  "pytest >=6",
+  "pytest-cov >=3",
+  "pre-commit",
+  "ruff",
+  "nox",
+]
+
+[tool.ruff]
+
+[tool.ruff.lint]
+extend-select = [
+  "ARG",      # flake8-unused-arguments
+  "B",        # flake8-bugbear
+  "C4",       # flake8-comprehensions
+  "EM",       # flake8-errmsg
+  "EXE",      # flake8-executable
+  "G",        # flake8-logging-format
+  "I",        # isort
+  "ICN",      # flake8-import-conventions
+  "NPY",      # NumPy specific rules
+  "PD",       # pandas-vet
+  "PGH",      # pygrep-hooks
+  "PIE",      # flake8-pie
+  "PL",       # pylint
+  "PT",       # flake8-pytest-style
+  "PTH",      # flake8-use-pathlib
+  "RET",      # flake8-return
+  "RUF",      # Ruff-specific
+  "SIM",      # flake8-simplify
+  "T20",      # flake8-print
+  "UP",       # pyupgrade
+  "YTT",      # flake8-2020
+]
+ignore = [
+  "PLR09",    # Too many <...>
+  "PLR2004",  # Magic value used in comparison
+  "ISC001",   # Conflicts with formatter
+]
+isort.required-imports = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["T20"]
+"noxfile.py" = ["T20"]
+
+[tool.semantic_release]
+version_toml = [
+    "pyproject.toml:project.version",
+]
+version_variables = [
+    "src/vtk_scene/__init__.py:__version__",
+]
+build_command = """
+  python -m venv .venv
+  source .venv/bin/activate
+  pip install -U pip build
+  python -m build .
+"""
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
