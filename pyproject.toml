@@ -35,6 +35,12 @@ dev = [
   "ruff",
   "nox",
 ]
+examples = [
+    "trame>=3.9",
+    "trame-vuetify",
+    "trame-vtk",
+    "trame-rca[turbo]",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -92,6 +98,7 @@ isort.required-imports = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["T20"]
+"examples/**" = ["T20", "SIM117", "SIM118"]
 "noxfile.py" = ["T20"]
 
 [tool.semantic_release]
