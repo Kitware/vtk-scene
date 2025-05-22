@@ -5,10 +5,10 @@ from trame.decorators import change
 from trame.ui.vuetify3 import VAppLayout
 from trame.widgets import rca
 from trame.widgets import vuetify3 as v3
-from vtkmodules.vtkCommonDataModel import vtkPlane
-from vtkmodules.vtkFiltersCore import vtkCutter
+from vtkmodules.vtkCommonDataModel import vtkDataObject
+from vtkmodules.vtkFiltersCore import vtkThreshold
 
-from vtk_scene import RenderView
+from vtk_scene import FieldLocation, RenderView, SceneManager
 from vtk_scene.io import ReaderFactory
 
 COLS = {
@@ -37,20 +37,22 @@ class MultiView(TrameApp):
         cli.add_argument("--fields", help="Fields to display", nargs="+")
         args, _ = cli.parse_known_args()
 
+        self.fields = args.fields
         self._setup_vtk(args.data, args.fields)
         self._build_ui(COLS[len(args.fields)])
 
     def _setup_vtk(self, file_to_load, fields):
         self.views = {}
-        self.representations = {"reader": [], "slice": []}
-        self.plane = vtkPlane()
+        self.representations = {"reader": [], "pounding": []}
         self.reader = ReaderFactory.create(file_to_load)
-        self.bounds = self.reader().bounds
-        self.plane.origin = [
-            0.5 * (self.bounds[0] + self.bounds[1]),
-            0.5 * (self.bounds[2] + self.bounds[3]),
-            0.5 * (self.bounds[4] + self.bounds[5]),
-        ]
+        self.threshold = vtkThreshold(
+            threshold_function=vtkThreshold.THRESHOLD_UPPER,
+            upper_threshold=0,
+        )
+        self.threshold.SetInputArrayToProcess(
+            0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_CELLS, "surface-ponded_depth"
+        )
+        self.reader >> self.threshold
 
         # Time info for UI
         self.state.time_values = self.reader.time_values
@@ -58,7 +60,7 @@ class MultiView(TrameApp):
 
         print("-" * 60)
         print("Available fields:")
-        for name in self.reader().point_data.keys():
+        for name in self.reader().cell_data.keys():
             print(f" - {name}")
         print("-" * 60)
 
@@ -69,14 +71,11 @@ class MultiView(TrameApp):
             rep.color_by(name)
             self.representations["reader"].append(rep)
 
-            cutter = vtkCutter(
-                cut_function=self.plane, input_connection=self.reader.output_port
-            )
             rep = view.create_representation(
-                cutter, name=f"cut_{name}", type="Geometry"
+                self.threshold, name=f"pounding_{name}", type="Geometry"
             )
-            rep.color_by(name)
-            self.representations["slice"].append(rep)
+            rep.actor.position = (0, 0, 1)
+            self.representations["pounding"].append(rep)
             view.reset_camera()
 
             # Sync camera
@@ -85,6 +84,23 @@ class MultiView(TrameApp):
 
             # Keep track of the view
             self.views[name] = view
+
+    def rescale(self, grow=False):
+        print("rescale grow", grow)
+        for rep, name in zip(self.representations["reader"], self.views.keys()):
+            lut = SceneManager.active_scene.luts[name]
+            dataset = rep.mapper.GetInput()
+            array = FieldLocation.CellData.get_array(dataset, name)
+
+            if array is not None:
+                if grow:
+                    old_min, old_max = lut.scalar_range
+                    current_min, current_max = array.GetRange()
+                    lut.rescale(min(old_min, current_min), max(old_max, current_max))
+                else:
+                    lut.rescale(*array.GetRange())
+
+        self.ctrl.view_update_all()
 
     def _on_camera_change(self, camera, *_):
         for field, view in self.views.items():
@@ -131,6 +147,7 @@ class MultiView(TrameApp):
                         hide_details=True,
                         density="compact",
                         style="min-width: 100px",
+                        click_prepend=(self.rescale, "[$event.altKey]"),
                     )
 
                     v3.VBtn(
@@ -172,52 +189,19 @@ class MultiView(TrameApp):
                     )
                     v3.VDivider(vertical=True, classes="ml-2")
                     v3.VSlider(
-                        disabled=("slice_axis == null",),
-                        prepend_icon="mdi-box-cutter",
-                        v_model=("slice_location", 0.5),
-                        min=0,
+                        prepend_icon="mdi-waves-arrow-up",
+                        v_model=("pounding", 0.5),
+                        min=0.01,
                         max=1,
                         step=0.01,
                         hide_details=True,
                         density="compact",
                     )
-                    with v3.VBtnToggle(
-                        v_model=("slice_axis", None),
-                        divided=True,
-                        border=True,
-                        density="compact",
-                        classes="ml-2",
-                    ):
-                        v3.VBtn("X", size="x-small")
-                        v3.VBtn("Y", size="x-small")
-                        v3.VBtn("Z", size="x-small")
 
-    @change("slice_axis")
-    def on_slice(self, slice_axis, **_):
-        if slice_axis is None:
-            for rep, name in zip(self.representations["reader"], self.views.keys()):
-                rep.actor.property.opacity = 1
-                rep.color_by(name)
-                rep.update()
-            for rep in self.representations["slice"]:
-                rep.actor.visibility = 0
-                rep.update()
-        else:
-            for rep in self.representations["reader"]:
-                rep.actor.property.opacity = 0.2
-                rep.color_by(None)
-                rep.update()
-            for rep, name in zip(self.representations["slice"], self.views.keys()):
-                rep.actor.visibility = 1
-                rep.color_by(name)
-                rep.update()
-
-            # Update slice normal
-            normal = [0, 0, 0]
-            normal[slice_axis] = 1
-            self.plane.normal = normal
-
-        for rep in self.representations["slice"]:
+    @change("pounding")
+    def on_pounding(self, pounding, **_):
+        self.threshold.upper_threshold = pounding
+        for rep in self.representations["pounding"]:
             rep.update()
 
         # Render all views

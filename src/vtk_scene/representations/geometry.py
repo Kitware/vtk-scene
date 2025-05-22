@@ -138,6 +138,12 @@ class GeometryRepresentation(AbstractRepresentation):
         self.mapper.SetLookupTable(lut)
 
         if field_location is None:
+            self.update()
+            self.mapper.Update()
+            dataset = self.mapper.GetInput()
+            field_location = FieldLocation.find(dataset, field_name)
+
+        if field_location is None:
             field_location = FieldLocation.PointData
 
         field_location.select(self.mapper)

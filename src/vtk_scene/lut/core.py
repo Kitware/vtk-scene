@@ -61,7 +61,7 @@ class LookupTable(vtkColorTransferFunction, AbstractSceneObject):
         prev_delta = prev_max - prev_min
         next_delta = max_value - min_value
 
-        if prev_delta < 0.0000001 or next_delta < 0.0000001:
+        if prev_delta < 0.000000001 or next_delta < 0.000000001:
             return
 
         self._scalar_range = [min_value, max_value]
@@ -84,3 +84,7 @@ class LookupTable(vtkColorTransferFunction, AbstractSceneObject):
     def color_mode(self, v: ColorMode):
         self._color_mode = v
         self._color_mode.apply(self)
+
+    @property
+    def scalar_range(self):
+        return self._scalar_range
