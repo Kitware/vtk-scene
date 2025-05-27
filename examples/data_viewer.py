@@ -18,6 +18,7 @@ from trame.widgets import vuetify3 as v3
 from vtk_scene import ColorMode, FieldLocation, RenderView, SceneManager
 from vtk_scene.io import ReaderFactory
 from vtk_scene.lut import PRESETS
+from vtk_scene.utils import get_range
 
 LOCATION_FIELD_SEPARATOR = "||"
 
@@ -93,6 +94,10 @@ class App(TrameApp):
                     classes="ml-2",
                 )
                 v3.VBtn(
+                    icon="mdi-arrow-expand-horizontal",
+                    click=self.reset_color_range,
+                )
+                v3.VBtn(
                     icon="mdi-crop-free",
                     click=self.reset_camera,
                 )
@@ -108,7 +113,7 @@ class App(TrameApp):
 
             with self.ui.footer.clear() as footer:
                 footer.classes = "pl-0 py-0"
-                footer.v_show = "time_values.length > 0"
+                footer.v_show = "time_values.length > 1"
                 v3.VSlider(
                     v_model=("t_index", 0),
                     min=0,
@@ -121,6 +126,16 @@ class App(TrameApp):
 
     def reset_camera(self):
         self.view.reset_camera()
+        self.ctrl.view_update()
+
+    def reset_color_range(self):
+        mode = COLOR_MODE_MAPPING[self.state.color_mode]
+        location, field_name = self.state.color_by.split(LOCATION_FIELD_SEPARATOR)
+        field_location = FieldLocation.get(location)
+        array = field_location.get_array(self.representation.input_data, field_name)
+        min_value, max_value = get_range(array, mode.vector_component)
+        lut = SceneManager.active_scene.luts[field_name]
+        lut.rescale(min_value, max_value)
         self.ctrl.view_update()
 
     @change("color_by")
@@ -150,7 +165,7 @@ class App(TrameApp):
         lut = SceneManager.active_scene.luts[field_name]
         if lut:
             lut.color_mode = COLOR_MODE_MAPPING[color_mode]
-            self.ctrl.view_update()
+            self.reset_color_range()
 
     @change("preset")
     def on_preset(self, preset, color_by, **_):

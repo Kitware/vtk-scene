@@ -1,3 +1,5 @@
+import logging
+
 from vtkmodules.vtkCommonExecutionModel import (
     vtkStreamingDemandDrivenPipeline as vtkSDDP,
 )
@@ -9,7 +11,12 @@ from vtkmodules.vtkRenderingCore import (
 
 from vtk_scene.lut import LookupTable
 from vtk_scene.representations.core import AbstractRepresentation
-from vtk_scene.utils import FieldLocation
+from vtk_scene.utils import FieldLocation, get_range
+
+logger = logging.getLogger(__name__)
+
+# logging.basicConfig(level=logging.CRITICAL)
+# logger.setLevel(logging.DEBUG)
 
 
 class GeometryRepresentation(AbstractRepresentation):
@@ -107,10 +114,19 @@ class GeometryRepresentation(AbstractRepresentation):
         reset_range=False,
         map_scalar=True,
     ):
+        logger.debug(
+            "color_by: field_name=%s, field_location=%s, preset=%s, reset_range=%s, map_scalar=%s",
+            field_name,
+            field_location,
+            preset,
+            reset_range,
+            map_scalar,
+        )
         if not field_name:
             self.mapper.SetScalarVisibility(0)
             return
 
+        self.mapper.SetScalarVisibility(1)
         lut = self.scene.luts[field_name]
         if lut is None:
             lut = LookupTable(field_name)
@@ -120,18 +136,22 @@ class GeometryRepresentation(AbstractRepresentation):
             lut.apply_preset(preset)
 
         if reset_range:
+            logger.debug("color_by: reset_range")
             self.update()
-            self.mapper.Update()
-            dataset = self.mapper.GetInput()
-            field_location = FieldLocation.find(dataset, field_name)
+            dataset = self.input_data
+            if field_location is None:
+                field_location = FieldLocation.find(dataset, field_name)
             array = field_location.get_array(dataset, field_name)
 
             if array is not None:
-                lut.rescale(*array.GetRange())
+                logger.debug("color_by => rescale %s=%s", field_name, get_range(array))
+                lut.rescale(*get_range(array))
 
         if map_scalar:
+            logger.debug("color_by => SetColorModeToMapScalars")
             self.mapper.SetColorModeToMapScalars()
         else:
+            logger.debug("color_by => SetColorModeToDirectScalars")
             self.mapper.SetColorModeToDirectScalars()
 
         self.mapper.SelectColorArray(field_name)
@@ -139,11 +159,11 @@ class GeometryRepresentation(AbstractRepresentation):
 
         if field_location is None:
             self.update()
-            self.mapper.Update()
-            dataset = self.mapper.GetInput()
+            dataset = self.input_data
             field_location = FieldLocation.find(dataset, field_name)
 
         if field_location is None:
             field_location = FieldLocation.PointData
 
+        logger.debug("color_by => %s", field_location)
         field_location.select(self.mapper)

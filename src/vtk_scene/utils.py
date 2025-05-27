@@ -1,7 +1,15 @@
+import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 
 import numpy as np
+from vtkmodules.numpy_interface.dataset_adapter import VTKCompositeDataArray
+from vtkmodules.vtkCommonCore import vtkDataArray
+from vtkmodules.vtkCommonDataModel import (
+    vtkDataSet,
+    vtkPartitionedDataSet,
+    vtkPartitionedDataSetCollection,
+)
 
 
 @dataclass
@@ -62,6 +70,14 @@ class ColorMode(Enum):
         results = [
             cls.FieldMagnitude,
         ]
+
+        # Just extract one of the composite array to figure out field shape
+        if isinstance(array, VTKCompositeDataArray):
+            for entry in array.Arrays:
+                if entry is not None and entry.GetNumberOfTuples() > 0:
+                    array = entry
+                    break
+
         if isinstance(array, np.ndarray):
             number_of_components = array.shape[-1]
             dtype = array.dtype
@@ -136,3 +152,98 @@ class FieldLocation(Enum):
         if self.value:
             return list(getattr(ds, self.value).keys())
         return []
+
+
+# -----------------------------------------------------------------------------
+# Internal Helpers
+# -----------------------------------------------------------------------------
+
+
+def merge_range(a, b):
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return (min(a[0], b[0]), max(a[1], b[1]))
+
+
+def merge_bounds(a, b):
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return (
+        min(a[0], b[0]),
+        max(a[1], b[1]),
+        min(a[2], b[2]),
+        max(a[3], b[3]),
+        min(a[4], b[4]),
+        max(a[5], b[5]),
+    )
+
+
+# -----------------------------------------------------------------------------
+# Helper for composite structures
+# -----------------------------------------------------------------------------
+
+EMPTY_BOUNDS = (
+    -sys.float_info.max,
+    sys.float_info.max,
+    -sys.float_info.max,
+    sys.float_info.max,
+    -sys.float_info.max,
+    sys.float_info.max,
+)
+
+
+def get_bounds(ds):
+    if ds is None:
+        return EMPTY_BOUNDS
+
+    if isinstance(ds, vtkDataSet):
+        return ds.bounds
+    if isinstance(ds, vtkPartitionedDataSet):
+        size = ds.GetNumberOfPartitions()
+        bounds = None
+        for i in range(size):
+            pds = ds.GetPartition(i)
+            bounds = merge_bounds(bounds, get_bounds(pds))
+        return bounds
+    if isinstance(ds, vtkPartitionedDataSetCollection):
+        size = ds.GetNumberOfPartitionedDataSets()
+        bounds = None
+        for i in range(size):
+            pds = ds.GetPartitionedDataSet(i)
+            bounds = merge_bounds(bounds, get_bounds(pds))
+        return bounds
+    return EMPTY_BOUNDS
+
+
+# -----------------------------------------------------------------------------
+
+
+def get_range(array, component=-1):
+    """VTK array range helper"""
+    if isinstance(array, vtkDataArray):
+        return array.GetRange(component)
+    if isinstance(array, VTKCompositeDataArray):
+        full_range = None
+        for entry in array.Arrays:
+            full_range = merge_range(full_range, entry.GetRange(component))
+        return full_range
+    if isinstance(array, np.ndarray):
+        shape = array.shape
+        if len(shape) == 1:
+            min_value = array.min()
+            max_value = array.max()
+            return (min_value, max_value)
+        if component >= 0:
+            component_array = array[component]
+            min_value = component_array.min()
+            max_value = component_array.max()
+            return (min_value, max_value)
+        msg = "Don't know how to compute np.array magnitude"
+        raise ValueError(msg)
+
+    msg = f"Don't know what to do with {type(array)}"
+    raise ValueError(msg)

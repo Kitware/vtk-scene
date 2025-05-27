@@ -10,6 +10,7 @@ from vtkmodules.vtkFiltersCore import vtkCutter
 
 from vtk_scene import RenderView
 from vtk_scene.io import ReaderFactory
+from vtk_scene.utils import get_bounds
 
 COLS = {
     1: 12,
@@ -45,7 +46,7 @@ class MultiView(TrameApp):
         self.representations = {"reader": [], "slice": []}
         self.plane = vtkPlane()
         self.reader = ReaderFactory.create(file_to_load)
-        self.bounds = self.reader().bounds
+        self.bounds = get_bounds(self.reader())
         self.plane.origin = [
             0.5 * (self.bounds[0] + self.bounds[1]),
             0.5 * (self.bounds[2] + self.bounds[3]),
@@ -59,7 +60,11 @@ class MultiView(TrameApp):
         print("-" * 60)
         print("Available fields:")
         for name in self.reader().point_data.keys():
-            print(f" - {name}")
+            print(f"(p) - {name}")
+        for name in self.reader().cell_data.keys():
+            print(f"(c) - {name}")
+        for name in self.reader().field_data.keys():
+            print(f"(f) - {name}")
         print("-" * 60)
 
         for name in fields:

@@ -18,3 +18,11 @@ Please use it at your own risk.
 
 **vtk-scene** is made available under the Apache License, Version 2.0. For more
 details, see [LICENSE](./LICENSE)
+
+## Caution
+
+This project is aimed to be used with VTK 9.5.
+
+```
+pip install "vtk==9.5.20250524.dev0" --extra-index-url https://wheels.vtk.org
+```
