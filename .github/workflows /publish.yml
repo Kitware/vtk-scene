@@ -1,0 +1,61 @@
+name: Test and Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  generate-jobs:
+    runs-on: ubuntu-latest
+    outputs:
+      session: ${{ steps.set-matrix.outputs.session }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wntrblm/nox@main
+      - id: set-matrix
+        shell: bash
+        run:
+          echo session=$(nox --json -l | jq -c '[.[].session]') | tee --append
+          $GITHUB_OUTPUT
+  checks:
+    name: Session ${{ matrix.session }}
+    needs: [generate-jobs]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        session: ${{ fromJson(needs.generate-jobs.outputs.session) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wntrblm/nox@main
+      - run: nox -s "${{ matrix.session }}"
+
+  release:
+    needs: [checks]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    environment:
+      name: github-pypi
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
+      contents: write # IMPORTANT: mandatory for making GitHub Releases
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v9.15.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish package distributions to PyPI
+        if: steps.release.outputs.released == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://api.github.com/orgs/Kitware/vtk-scene/packages/pypi/upload
