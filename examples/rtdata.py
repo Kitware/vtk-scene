@@ -8,7 +8,7 @@
 # ]
 #
 # [tool.uv.sources]
-# vtk-scene = { path = "../" }
+# vtk-scene = { url = "https://github.com/Kitware/vtk-scene/releases/download/v0.1.3/vtk_scene-0.1.3-py3-none-any.whl" }
 # ///
 
 import vtk

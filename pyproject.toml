@@ -49,6 +49,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build]
 include = [
   "/src/vtk_scene/**/*.py",
+  "/src/vtk_scene/**/*.json",
 ]
 
 [tool.hatch.build.targets.wheel]
