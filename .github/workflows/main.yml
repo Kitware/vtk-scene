@@ -51,3 +51,10 @@ jobs:
         uses: python-semantic-release/python-semantic-release@v9.15.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: python-semantic-release/publish-action@v10.0.2
+        if: steps.release.outputs.released == 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.release.outputs.tag }}
