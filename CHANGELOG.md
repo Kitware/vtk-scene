@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.1.1 (2025-05-30)
+
+### Bug Fixes
+
+- Add rtdata example
+  ([`cde1a9c`](https://github.com/Kitware/vtk-scene/commit/cde1a9c0f6090d08fcf801faac5e37c23f74e74d))
+
+### Continuous Integration
+
+- Try to publish
+  ([`6669341`](https://github.com/Kitware/vtk-scene/commit/66693411fc1a2f9e3a75ccd1a6a0c21a4636f8e8))
+
+
 ## v0.1.0 (2025-05-30)
 
 ### Bug Fixes
