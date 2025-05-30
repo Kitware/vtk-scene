@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.1.3 (2025-05-30)
+
+### Bug Fixes
+
+- **preset**: Properly capture presets.json
+  ([`12d906d`](https://github.com/Kitware/vtk-scene/commit/12d906d18985b292ff217f5ce00fe675f4e87abe))
+
+
 ## v0.1.2 (2025-05-30)
 
 ### Bug Fixes
