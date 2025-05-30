@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.1.2 (2025-05-30)
+
+### Bug Fixes
+
+- Artifacts
+  ([`e9215d0`](https://github.com/Kitware/vtk-scene/commit/e9215d007a3cc43bc5c3fcea45a1abdf8b0d02b3))
+
+### Continuous Integration
+
+- Fix typo in publish
+  ([`0b1557d`](https://github.com/Kitware/vtk-scene/commit/0b1557d13e6edb5d22e2f5bec9b89e29e283279e))
+
+- Split publish task to be manual
+  ([`3df43d0`](https://github.com/Kitware/vtk-scene/commit/3df43d060e262cd00d5ac93908fc4ebc499118d0))
+
+
 ## v0.1.1 (2025-05-30)
 
 ### Bug Fixes
