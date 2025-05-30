@@ -26,3 +26,45 @@ This project is aimed to be used with VTK 9.5.
 ```
 pip install "vtk==9.5.20250524.dev0" --extra-index-url https://wheels.vtk.org
 ```
+
+## Introduction
+
+This library provide the following set of classes:
+
+- `vtk_scene.SceneManager`: The scene manager is capturing views,
+  representations, lookup tables and possible more depending on your usage. But
+  the goal here is to have a central location where you can find your scene
+  definition while also ensuring shared lookup table for fields with the same
+  name.
+- `vtk_scene.RenderView`: The render view is a wrapper around a vtkRenderWindow
+  with some helper methods for configuring the interaction style and manage
+  representations that belong to the view.
+- `vtk_scene.FieldLocation`: Utility enum for defining data location (point,
+  cell, field)
+- `vtk_scene.ColorMode`: Utility enum (RGB, FieldMagnitude, FieldComponent1-9)
+  for configuring the coloring mode on the Lookup table.
+
+On top of those core objects you can create/get representations and lookup table
+interacting with those classes like shown below
+
+```python
+import vtk
+from vtk_scene import ColorMode, FieldLocation, RenderView, SceneManager
+
+data_source = vtk.vtkRTAnalyticSource()
+vtk_view = RenderView()
+
+data_rep = vtk_view.create_representation(
+    source=data_source,
+    type="Geometry",
+)
+data_rep.color_by("RTData", preset="Cool to Warm")
+
+lut = SceneManager.active_scene.luts["RTData"]
+lut.rescale(40, 200)
+
+vtk_view.reset_camera()
+vtk_view.update()
+
+print(f"Available time values: {vtk_view.time_values}")
+```
