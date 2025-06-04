@@ -24,7 +24,7 @@ details, see [LICENSE](./LICENSE)
 This project is aimed to be used with VTK 9.5.
 
 ```
-pip install "vtk==9.5.20250524.dev0" --extra-index-url https://wheels.vtk.org
+pip install "vtk==9.5.0rc2" --extra-index-url https://wheels.vtk.org
 ```
 
 ## Introduction
