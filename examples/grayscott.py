@@ -45,7 +45,7 @@ from vtk_scene import RenderView
 
 # ---------------------------------------------------------------
 n = 200  # grid subdivisions
-anim_speed = 0.01  # number of second to wait before next step
+ANIM_SPEED = 0.01  # number of second to wait before next step
 # ---------------------------------------------------------------
 OPTIONS = {
     # name: (Du, Dv, F, k),
@@ -67,6 +67,15 @@ OPTIONS = {
 class VizApp(TrameApp):
     def __init__(self, server=None):
         super().__init__(server)
+
+        # CLI
+        self.server.cli.add_argument(
+            "--normals",
+            help="Compute normals",
+            action="store_true",
+        )
+        self.compute_normals = self.server.cli.parse_known_args()[0].normals
+
         self._setup_vtk()
         self._build_ui()
 
@@ -85,7 +94,19 @@ class VizApp(TrameApp):
 
         # VTK Scene part
         self.view = RenderView()
-        self.representation = self.view.create_representation(self.grd, type="Geometry")
+
+        if self.compute_normals:
+            geo = vtk.vtkGeometryFilter()
+            normal = vtk.vtkPolyDataNormals()
+            self.grd >> geo >> normal
+            self.representation = self.view.create_representation(
+                normal, type="Geometry"
+            )
+        else:
+            self.representation = self.view.create_representation(
+                self.grd, type="Geometry"
+            )
+
         self.view.reset_camera()
 
     @change("model")
@@ -135,6 +156,7 @@ class VizApp(TrameApp):
 
         # VTK data model
         self.grd.point_data["escals"] = self.V.ravel()
+        self.grd.points[:, 2] = self.V.ravel() * 0.1
 
         # VTK Scene
         self.representation.color_by("escals")
@@ -142,7 +164,7 @@ class VizApp(TrameApp):
 
     async def _animate(self, **_):
         while True:
-            await asyncio.sleep(anim_speed)
+            await asyncio.sleep(ANIM_SPEED)
             self._update_data()
             self.representation.update()
             self.ctx.vtk_view.update()
