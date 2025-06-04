@@ -207,21 +207,6 @@ class MultiView(TrameApp):
         # Render all views
         self.ctrl.view_update_all()
 
-    @change("slice_location")
-    def on_slice_location(self, slice_location, slice_axis, **_):
-        origin = [
-            slice_location * (self.bounds[1] - self.bounds[0]) + self.bounds[0],
-            slice_location * (self.bounds[3] - self.bounds[2]) + self.bounds[2],
-            slice_location * (self.bounds[5] - self.bounds[4]) + self.bounds[4],
-        ]
-        self.plane.origin = origin
-
-        for rep in self.representations["slice"]:
-            rep.update()
-
-        if slice_axis is not None:
-            self.ctrl.view_update_all()
-
     @change("time_index")
     def on_time(self, time_index, time_values, **_):
         for view in self.views.values():
